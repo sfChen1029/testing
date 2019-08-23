@@ -4,24 +4,28 @@ import matplotlib.pyplot as plt
 env = gym.make("CartPole-v1")
 
 LEARNING_RATE = 0.1
-DISCOUNT = 0.99
+DISCOUNT = 0.90
 EPISODES = 6000
 SHOW_EVERY = 500
-DISCRETE_SIZE = [10, 10, 30, 30]
+#DISCRETE_SIZE = [10, 10, 30, 30]
 
 
-epsilon = 0.5 #how much we want to explore/try random actions
+epsilon = 0.8 #how much we want to explore/try random actions
 START_EPSILON_DECAYING = 1
 END_EPSILON_DECAYING = EPISODES//2
 epsilon_decay_value = epsilon/(END_EPSILON_DECAYING-START_EPSILON_DECAYING)
 
 def get_discrete_state(state): #state = [x, x_dot, theta, theta_dot]
-    units = ((env.observation_space.high.astype('float64') - env.observation_space.low.astype('float64'))/DISCRETE_SIZE)[2:]
-    discrete_state = (state.astype('float64') - env.observation_space.low.astype('float64'))[2:]/units
-    return tuple(discrete_state.astype(np.int))
+    theta_units = ((env.observation_space.high.astype('float64') - env.observation_space.low.astype('float64'))/30)[2]
+    discrete_theta = (state.astype('float64') - env.observation_space.low.astype('float64'))[2]/theta_units
+    theta_dot = max(-3, min(state[3], 3))
+    theta_dot_units = (3 - (- 3))/12
+    discrete_theta_dot = (theta_dot -(-3))/theta_dot_units
+    discrete_state = [int(discrete_theta), int(discrete_theta_dot)]
+    return tuple(discrete_state)
 
 #initializing Q table
-q_table = np.random.uniform(low=0, high=2, size = (DISCRETE_SIZE[2:]+ [env.action_space.n])) # 10x20x2
+q_table = np.random.uniform(low=0, high=2, size = ([30, 12]+ [env.action_space.n])) # 10x20x2
 
 ep_rewards = []
 aggr_ep_rewards = {'ep': [], 'avg': [], 'min': [], 'max': []}
@@ -34,7 +38,9 @@ for episode in range(EPISODES):
     else:
         render = False
 
-    discrete_state = get_discrete_state(env.reset())
+    state = env.reset()
+    discrete_state = get_discrete_state(state)
+    #print(state)
 
     done = False
     while not done:
@@ -46,6 +52,8 @@ for episode in range(EPISODES):
         updated_state, reward, done, info = env.step(action) # take a random action
         episode_reward += reward
         updated_discrete_state = get_discrete_state(updated_state)
+
+        #reward = 24 - abs(updated_state[2])
 
         if not done:
             future_q = np.max(q_table[updated_discrete_state])
@@ -59,6 +67,7 @@ for episode in range(EPISODES):
 
         if render:
             env.render()
+            #print(updated_discrete_state)
 
     ep_rewards.append(episode_reward)
     if episode % SHOW_EVERY == 0:
