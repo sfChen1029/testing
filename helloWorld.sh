@@ -1,3 +1,7 @@
 #!/bin/sh
 # the above line makes sure the file is executed by /bin/sh
-echo Hello World
+read NAME
+echo "Hello $NAME"
+var="WORLD"
+echo "HELLO $var"
+echo $1
